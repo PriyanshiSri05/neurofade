@@ -7,7 +7,7 @@ let config = {
     sensitivity: 50,
     maxGrayscale: 100, // percentage
     maxContrastDrop: 30, // drops to 70% contrast
-    minPlaybackRate: 0.85, // slows down by 15%
+    minPlaybackRate: 0.5, // slows down by 50%
     baseFadeTimeMs: 30000 // default 30s to full fade
 };
 
@@ -137,54 +137,59 @@ function getActiveShortVideo() {
 
     // Find the video taking most screen space or is actively playing
     const videos = Array.from(document.querySelectorAll('video'));
+    let bestVideo = null;
+    let maxArea = 0;
+
     for (const video of videos) {
-        // Typical short-form videos have portrait aspect ratios and are actively playing
-        if (!video.paused && video.readyState >= 2) {
-            const rect = video.getBoundingClientRect();
+        const rect = video.getBoundingClientRect();
+        // Check if video is visible in the viewport
+        if (rect.width > 0 && rect.height > 0) {
             const area = rect.width * rect.height;
             // Heuristic: Must be reasonably large, usually taller than it is wide 
             if (area > 50000 && rect.height >= rect.width - 50) {
-                return video;
+                // If it's playing, prefer it immediately. Otherwise, keep the largest visible one.
+                if (!video.paused) {
+                    return video;
+                }
+                if (area > maxArea) {
+                    maxArea = area;
+                    bestVideo = video;
+                }
             }
         }
     }
-    return null;
+    return bestVideo;
 }
 
 function updateEngine() {
     const activeVideo = getActiveShortVideo();
 
     if (!activeVideo || !config.enabled) {
-        if (currentVideo) {
-            resetFade(currentVideo);
-            currentVideo = null;
+        // Even if paused, we must continuously apply the fade. 
+        // YouTube/TikTok aggressively reset styles and playback rates when paused or scrolling.
+        if (currentVideo && config.enabled) {
+            applyFade(currentVideo, fadeLevel);
         }
         return;
     }
 
     // Did the user swipe to a new video?
-    // We can detect this if the active video element changed, OR if its source changed (src/currentSrc)
+    // We update currentVideo but DO NOT reset the fade! The punishment persists.
     if (activeVideo !== currentVideo || (currentVideo && activeVideo.currentSrc !== currentVideo.currentSrc)) {
-        if (currentVideo) resetFade(currentVideo);
         currentVideo = activeVideo;
-        resetFade(currentVideo);
     }
 
-    // --- Calculate Fade Progression ---
-    // Base fade time: it normally takes config.baseFadeTimeMs to reach 1.0 fadeLevel.
-    // The dopamine score accelerates this.
-    const timeStepMs = 1000 / CV_FPS;
+    if (!activeVideo.paused) {
+        // --- Calculate Fade Progression ---
+        const timeStepMs = 1000 / CV_FPS;
+        const baseIncrement = timeStepMs / config.baseFadeTimeMs;
+        const dopamineIncrement = (dopamineScore / 100) * 0.005;
+        dopamineScore = 0; // Consume the score
 
-    // Normal time-based progression
-    const baseIncrement = timeStepMs / config.baseFadeTimeMs;
+        fadeLevel = Math.min(1.0, fadeLevel + baseIncrement + dopamineIncrement);
+    }
 
-    // Extra progression based on accumulated dopamine score (high cuts and motion)
-    // For every 100 units of dopamine score, add a small bump to the fade level
-    const dopamineIncrement = (dopamineScore / 100) * 0.005;
-    dopamineScore = 0; // Consume the score
-
-    fadeLevel = Math.min(1.0, fadeLevel + baseIncrement + dopamineIncrement);
-
+    // Always apply fade to fight against YouTube/TikTok resetting the DOM
     applyFade(currentVideo, fadeLevel);
 }
 
