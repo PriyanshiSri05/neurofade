@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+      background: #fafafa;
+      color: #333;
+    }
+    h2 {
+      margin-top: 0;
+      color: #111;
+      font-size: 18px;
+    }
+    .setting {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .value-display {
+      float: right;
+      color: #666;
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .toggle label {
+      margin-bottom: 0;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Neuro-Fade</h2>
+  <div class="toggle">
+    <input type="checkbox" id="enabled">
+    <label for="enabled">Enable Neuro-Fade</label>
+  </div>
+  
+  <div class="setting">
+    <label for="sensitivity">
+      Sensitivity
+      <span id="sensitivity-val" class="value-display">50</span>
+    </label>
+    <input type="range" id="sensitivity" min="1" max="100" value="50">
+    <small>Higher sensitivity fades faster on cuts/motion.</small>
+  </div>
+
+  <div class="setting">
+    <label for="fadeTime">
+      Base Fade Time (seconds)
+      <span id="fadeTime-val" class="value-display">30</span>
+    </label>
+    <input type="range" id="fadeTime" min="5" max="120" value="30">
+    <small>Time to reach maximum fade (without spikes).</small>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
